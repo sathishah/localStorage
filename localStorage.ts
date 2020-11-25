@@ -5,12 +5,12 @@ export interface localStorage<T> {
     getItem<U extends keyof T>(key: U): T[U] | null;
     removeItem<U extends keyof T>(key: U): void;
     clear(): void;
-    localStorage_hasItem<U extends keyof T>(key: U): boolean;
-    localStorage_getBackup(): object | null;
-    localStorage_getRemainingSpace(): number;
-    localStorage_applyBackup(backup: object, fClear: boolean, fOverwriteExisting: boolean): void;
-    localStorage_getMaximumSize(): number;
-    localStorage_getUsedSize(): number;
+    hasItem<U extends keyof T>(key: U): boolean;
+    getBackup(): object | null;
+    getRemainingSpace(): number;
+    applyBackup(backup: object, fClear: boolean, fOverwriteExisting: boolean): void;
+    getMaximumSize(): number;
+    getUsedSize(): number;
     getItemUsedSpace<U extends keyof T>(key: U): boolean | typeof NaN;
 }
 
@@ -20,7 +20,6 @@ export interface localStorageOptions {
 
 export default class TypedStorage<T> implements localStorage<T> {
     private storage: Storage;
-
     constructor(options: localStorageOptions = { storage: 'localStorage' }) {
         this.storage = typeof window !== 'undefined' ? window[options.storage] : global[options.storage];
     }
@@ -35,11 +34,9 @@ export default class TypedStorage<T> implements localStorage<T> {
 
     public getItem<U extends keyof T>(key: U): T[U] | null {
         const item = this.storage.getItem(key.toString());
-
         if (item === null) {
             return item;
         }
-
         try {
             return JSON.parse(item) as T[U];
         } catch {
@@ -59,12 +56,11 @@ export default class TypedStorage<T> implements localStorage<T> {
         this.storage.clear();
     }
 
-    public localStorage_hasItem<U extends keyof T>(key: U): boolean{
+    public hasItem<U extends keyof T>(key: U): boolean{
         return localStorage.getItem(key.toString()) !== null;
     }
     
-
-    public localStorage_getBackup(): object | null {
+    public getBackup(): object | null {
         let backup = {};
         for (let i = 0; i < localStorage.length; ++i) {
             let key = localStorage.key(i);
@@ -74,7 +70,7 @@ export default class TypedStorage<T> implements localStorage<T> {
         return backup;
     }
 
-    public localStorage_getRemainingSpace(): number {
+    public getRemainingSpace(): number {
         let itemBackup = localStorage.getItem("");
         let increase = true;
         let data = "1";
@@ -85,8 +81,9 @@ export default class TypedStorage<T> implements localStorage<T> {
                 trytotalData = totalData + data;
                 localStorage.setItem("", trytotalData);
                 totalData = trytotalData;
-                if (increase)
+                if (increase) {
                     data += data;
+                }
             }
             catch (e) {
                 if (data.length < 2) {
@@ -96,14 +93,15 @@ export default class TypedStorage<T> implements localStorage<T> {
                 data = data.substr(data.length / 2);
             }
         }
-        if (itemBackup === null)
+        if (itemBackup === null) {
             localStorage.removeItem("");
-        else
+        } else {
             localStorage.setItem("", itemBackup);
+        }
         return totalData.length;
     }
 
-    public localStorage_applyBackup(backup: object, fClear: boolean, fOverwriteExisting: boolean): void {
+    public applyBackup(backup: object, fClear: boolean, fOverwriteExisting: boolean): void {
         if (fClear === void 0) { fClear = true; }
         if (fOverwriteExisting === void 0) { fOverwriteExisting = true; }
         if (fClear == true) {
@@ -118,16 +116,15 @@ export default class TypedStorage<T> implements localStorage<T> {
         }
     }
 
-
-    public localStorage_getMaximumSize(): number {
-        let backup = this.localStorage_getBackup();
+    public getMaximumSize(): number {
+        let backup = this.getBackup();
         this.storage.clear();
-        let max = this.localStorage_getRemainingSpace();
-        this.localStorage_applyBackup(backup, true, true);
+        let max = this.getRemainingSpace();
+        this.applyBackup(backup, true, true);
         return max;
     }
 
-    public localStorage_getUsedSize(): number {
+    public getUsedSize(): number {
         let sum = 0;
         for (let i = 0; i < localStorage.length; ++i) {
             let key = localStorage.key(i)
